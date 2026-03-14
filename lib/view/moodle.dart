@@ -173,7 +173,6 @@ class _MoodleWebViewState extends State<MoodleWebView> {
         (cookie) => cookie.name == "MoodleSession",
       );
 
-      dio.close();
       jar.deleteAll();
 
       addWebViewCookies(
