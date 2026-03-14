@@ -48,8 +48,15 @@ void main() async {
       if (sph?.session != null) QuickActionsStartUp();
     });
 
-    await setupBackgroundService(accountDatabase);
-    await initializeNotifications();
+    try {
+      // Some iOS database lock operation is blocking this?
+      await setupBackgroundService(accountDatabase);
+      await initializeNotifications();
+    } catch (e, stack) {
+      logger.e('Failed to initialize background service and notifications');
+      logger.e(e, stackTrace: stack);
+    }
+
     await initializeDateFormatting();
 
     // logger.testLogger();
