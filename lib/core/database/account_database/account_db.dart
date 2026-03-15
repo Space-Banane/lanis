@@ -15,8 +15,7 @@ import 'kv_defaults.dart';
 part 'account_db.g.dart';
 
 /// Define Android options as recommended for encrypted shared preferences.
-AndroidOptions _getAndroidOptions() =>
-    const AndroidOptions(encryptedSharedPreferences: true);
+AndroidOptions _getAndroidOptions() => const AndroidOptions();
 
 /// Instantiate FlutterSecureStorage with android options.
 /// iOS uses Keychain by default.
@@ -24,7 +23,7 @@ final FlutterSecureStorage secureStorage = FlutterSecureStorage(
   aOptions: _getAndroidOptions(),
   iOptions: IOSOptions(
     accessibility: KeychainAccessibility.first_unlock_this_device,
-    synchronizable: true,
+    synchronizable: false,
   ),
 );
 
