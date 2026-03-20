@@ -88,6 +88,9 @@ try:
                 for subject in day.subjects:
                     name = subject.name or "(free)"
                     time_range = f"{subject.start_time}–{subject.end_time}"
+                    if time_range == "13:30-15:00" and subject.teacher != "ÖZTÜ" and day_name == "Monday":
+                        continue # Skip the 7th and 8th lesson on Mondays unless it's taught by ÖZTÜ
+                        
                     details = []
                     if subject.room:
                         details.append(f"Room: {subject.room}")
