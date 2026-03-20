@@ -1,3 +1,10 @@
+# Python credentials – never commit real secrets
+.env
+
+# Python bytecode cache
+__pycache__/
+*.pyc
+
 worker/node_modules
 app/node_modules/
 app/*.map
