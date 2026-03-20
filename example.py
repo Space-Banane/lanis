@@ -12,6 +12,7 @@ Usage:
 """
 
 import os
+import argparse
 from dotenv import load_dotenv
 from sph_lib import (
     SPHClient,
@@ -21,6 +22,56 @@ from sph_lib import (
     SPHDownException,
     EncryptionException,
 )
+
+# ---------------------------------------------------------------------------
+# Argument Parsing
+# ---------------------------------------------------------------------------
+parser = argparse.ArgumentParser(description="Example script showing how to use sph_lib")
+parser.add_argument("--ignore", type=str, help="Ignore string format: timeframe;IfNot;Teacher;Day;Scope")
+args = parser.parse_args()
+
+def should_ignore(time_range, teacher, day_name, ignore_str):
+    if not ignore_str:
+        return False
+    
+    try:
+        # Support both semicolon and comma as separators
+        if ";" in ignore_str:
+            parts = ignore_str.split(";")
+        else:
+            parts = ignore_str.split(",")
+
+        if len(parts) < 5:
+            return False
+            
+        target_time, condition, target_teacher, target_day, scope = [p.strip() for p in parts]
+        
+        # Strip quotes/literal chars from condition if present
+        # Handles: IfNot"ÖZTÜ", IfNot'ÖZTÜ', IfNotÖZTÜ
+        target_teacher_cond = None
+        if condition.startswith("IfNot"):
+            target_teacher_cond = condition[5:].strip("'\"")
+        else:
+            target_teacher_cond = None
+
+        # Check timeframe
+        if target_time.lower() != "all" and target_time != time_range:
+            return False
+            
+        # Check day
+        if target_day.lower() != "all":
+            # Support plural like "Mondays" or singular "Monday"
+            if not target_day.lower().startswith(day_name.lower()):
+                return False
+                
+        # Check condition (IfNot Teacher)
+        if target_teacher_cond and teacher:
+            if teacher.upper() == target_teacher_cond.upper():
+                return False
+            
+        return True
+    except Exception:
+        return False
 
 # ---------------------------------------------------------------------------
 # Load credentials from .env
@@ -87,7 +138,11 @@ try:
             else:
                 for subject in day.subjects:
                     name = subject.name or "(free)"
-                    time_range = f"{subject.start_time}–{subject.end_time}"                        
+                    time_range = f"{subject.start_time}-{subject.end_time}"
+                    
+                    if args.ignore and should_ignore(time_range, subject.teacher, day_name, args.ignore):
+                        continue
+                        
                     details = []
                     if subject.room:
                         details.append(f"Room: {subject.room}")
