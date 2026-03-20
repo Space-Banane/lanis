@@ -28,6 +28,7 @@ from sph_lib import (
 # ---------------------------------------------------------------------------
 parser = argparse.ArgumentParser(description="Example script showing how to use sph_lib")
 parser.add_argument("--ignore", type=str, help="Ignore string format: timeframe;IfNot;Teacher;Day;Scope")
+parser.add_argument("--day", type=str, help="Specific day name to display (e.g. Monday)")
 args = parser.parse_args()
 
 def should_ignore(time_range, teacher, day_name, ignore_str):
@@ -132,6 +133,10 @@ try:
                 if day.day_index < len(DAY_NAMES)
                 else f"Day {day.day_index}"
             )
+
+            if args.day and args.day.lower() not in day_name.lower():
+                continue
+
             print(f"\n{day_name}:")
             if not day.subjects:
                 print("  (no lessons)")
