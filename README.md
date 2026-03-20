@@ -1,5 +1,6 @@
 # SPH Python Library
 (Copilot worked on this project | There ain't no Human Code in here... | Sorry Anti-AI folk)
+
 Python library for the Hessian School Portal (Schulportal Hessen, SPH).
 
 Documented and ported from the original [lanis-mobile](https://github.com/alessioC42/lanis-mobile)
