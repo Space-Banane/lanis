@@ -13,6 +13,8 @@ Usage:
 
 import os
 import argparse
+import json
+from dataclasses import asdict
 from dotenv import load_dotenv
 from sph_lib import (
     SPHClient,
@@ -29,6 +31,7 @@ from sph_lib import (
 parser = argparse.ArgumentParser(description="Example script showing how to use sph_lib")
 parser.add_argument("--ignore", type=str, help="Ignore string format: timeframe;IfNot;Teacher;Day;Scope")
 parser.add_argument("--day", type=str, help="Specific day name to display (e.g. Monday)")
+parser.add_argument("--json", action="store_true", help="Output results in JSON format")
 args = parser.parse_args()
 
 def should_ignore(time_range, teacher, day_name, ignore_str):
@@ -92,7 +95,8 @@ if not SCHOOL_ID or not USERNAME or not PASSWORD:
 # ---------------------------------------------------------------------------
 # Login
 # ---------------------------------------------------------------------------
-print(f"Logging in as {USERNAME} at school {SCHOOL_ID} …")
+if not args.json:
+    print(f"Logging in as {USERNAME} at school {SCHOOL_ID} …")
 
 client = SPHClient(school_id=SCHOOL_ID, username=USERNAME, password=PASSWORD)
 
@@ -107,10 +111,42 @@ except SPHDownException:
 except EncryptionException as e:
     raise SystemExit(f"Encryption handshake failed: {e}")
 
-print("Login successful.\n")
+if not args.json:
+    print("Login successful.\n")
 
 # ---------------------------------------------------------------------------
-# Fetch and display the timetable (Stundenplan)
+# Fetch data
+# ---------------------------------------------------------------------------
+results = {}
+
+try:
+    results["timetable"] = client.get_timetable()
+except SPHException as e:
+    results["timetable_error"] = str(e)
+
+try:
+    results["substitutions"] = client.get_substitutions()
+except SPHException as e:
+    results["substitutions_error"] = str(e)
+
+# ---------------------------------------------------------------------------
+# JSON Output
+# ---------------------------------------------------------------------------
+if args.json:
+    json_output = {
+        "timetable": asdict(results["timetable"]) if "timetable" in results else None,
+        "substitutions": asdict(results["substitutions"]) if "substitutions" in results else None,
+    }
+    if "timetable_error" in results:
+        json_output["timetable_error"] = results["timetable_error"]
+    if "substitutions_error" in results:
+        json_output["substitutions_error"] = results["substitutions_error"]
+    
+    print(json.dumps(json_output, indent=2, ensure_ascii=False))
+    exit(0)
+
+# ---------------------------------------------------------------------------
+# Display the timetable (Stundenplan)
 # ---------------------------------------------------------------------------
 DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
 
@@ -118,9 +154,10 @@ print("=" * 60)
 print("TIMETABLE (Stundenplan)")
 print("=" * 60)
 
-try:
-    timetable = client.get_timetable()
-
+if "timetable_error" in results:
+    print(f"Could not fetch timetable: {results['timetable_error']}")
+else:
+    timetable = results["timetable"]
     if timetable.week_badge:
         print(f"Week badge: {timetable.week_badge}\n")
 
@@ -158,20 +195,18 @@ try:
                     detail_str = "  |  ".join(details)
                     print(f"  [{time_range}]  {name}  —  {detail_str}")
 
-except SPHException as e:
-    print(f"Could not fetch timetable: {e}")
-
 # ---------------------------------------------------------------------------
-# Fetch and display the substitution plan (Vertretungsplan)
+# Display the substitution plan (Vertretungsplan)
 # ---------------------------------------------------------------------------
 print("\n")
 print("=" * 60)
 print("SUBSTITUTIONS (Vertretungsplan)")
 print("=" * 60)
 
-try:
-    plan = client.get_substitutions()
-
+if "substitutions_error" in results:
+    print(f"Could not fetch substitutions: {results['substitutions_error']}")
+else:
+    plan = results["substitutions"]
     if plan.last_updated:
         print(f"Last updated: {plan.last_updated}\n")
 
@@ -215,6 +250,3 @@ try:
                     if sub.note:
                         parts.append(f"Note: {sub.note}")
                     print("  " + "  |  ".join(parts))
-
-except SPHException as e:
-    print(f"Could not fetch substitutions: {e}")
